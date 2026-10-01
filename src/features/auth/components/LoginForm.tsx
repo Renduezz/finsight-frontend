@@ -1,39 +1,45 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import { login } from "@/features/auth/services/authApi";
 
 export default function LoginForm() {
-  // Estado controlado: React "recuerda" lo que el usuario escribe
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // evita que el navegador recargue la página
-    // Por ahora solo mostramos los datos en consola.
-    // Aquí más adelante llamaremos a authApi.ts -> POST /auth/login
-    console.log({ email, password, rememberMe });
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const { token } = await login(email, password);
+      localStorage.setItem("finsight_token", token);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid credentials.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Please enter your details to access your financial intelligence
-        portal.
+        Please enter your details to access your financial intelligence portal.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        {/* Campo de correo */}
         <div>
-          <label
-            htmlFor="email"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Email Address
-          </label>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">Email Address</label>
           <input
             id="email"
             type="email"
@@ -45,14 +51,8 @@ export default function LoginForm() {
           />
         </div>
 
-        {/* Campo de contraseña con botón de mostrar/ocultar */}
         <div>
-          <label
-            htmlFor="password"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Password
-          </label>
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">Password</label>
           <div className="relative">
             <input
               id="password"
@@ -67,14 +67,13 @@ export default function LoginForm() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-label="Mostrar u ocultar contraseña"
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
-        {/* Recordarme + olvidé contraseña */}
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 text-slate-600">
             <input
@@ -85,25 +84,23 @@ export default function LoginForm() {
             />
             Remember for 30 days
           </label>
-          <a href="#" className="font-medium text-primary hover:underline">
-            Forgot password?
-          </a>
+          <a href="#" className="font-medium text-primary hover:underline">Forgot password?</a>
         </div>
 
-        {/* Botón de submit */}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
         <button
           type="submit"
-          className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-60"
         >
-          Log In →
+          {isSubmitting ? "Logging in..." : "Log In →"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Don&apos;t have an account?{" "}
-        <a href="/register" className="font-medium text-primary hover:underline">
-          Create account
-        </a>
+        <a href="/register" className="font-medium text-primary hover:underline">Create account</a>
       </p>
     </div>
   );

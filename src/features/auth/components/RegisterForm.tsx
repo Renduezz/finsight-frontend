@@ -1,10 +1,13 @@
 "use client";
 
-import { isCorporateEmail } from "@/shared/lib/validators";
-import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import { register } from "@/features/auth/services/authApi";
+import { isCorporateEmail } from "@/shared/lib/validators";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,49 +15,44 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    // Validación básica en el cliente, según las reglas de tu documento
-    // (contraseñas coincidentes). La validación de formato completa
-    // (mayúscula, número, símbolo, etc.) la reforzará el backend.
     if (!isCorporateEmail(email)) {
       setError("Please use your corporate/work email address (personal providers like Gmail or Yahoo are not allowed).");
       return;
     }
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError("Passwords do not match.");
       return;
     }
     if (!agreedToTerms) {
-      setError("Debes aceptar los Términos de Servicio.");
+      setError("You must accept the Terms of Service.");
       return;
     }
 
-    // Placeholder: aquí luego llamaremos a authApi.ts -> POST /auth/register
-    console.log({ fullName, email, password });
+    setIsSubmitting(true);
+    try {
+      await register(fullName, email, password);
+      router.push("/login");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the account.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">
-        Create your account
-      </h1>
-      <p className="mt-2 text-sm text-slate-500">
-        Join FinSight AI to start monitoring your financial intelligence.
-      </p>
+      <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
+      <p className="mt-2 text-sm text-slate-500">Join FinSight AI to start monitoring your financial intelligence.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        {/* Nombre completo */}
         <div>
-          <label
-            htmlFor="fullName"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Full Name
-          </label>
+          <label htmlFor="fullName" className="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
           <input
             id="fullName"
             type="text"
@@ -66,14 +64,8 @@ export default function RegisterForm() {
           />
         </div>
 
-        {/* Correo de trabajo */}
         <div>
-          <label
-            htmlFor="email"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Work Email
-          </label>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">Work Email</label>
           <input
             id="email"
             type="email"
@@ -85,14 +77,8 @@ export default function RegisterForm() {
           />
         </div>
 
-        {/* Contraseña */}
         <div>
-          <label
-            htmlFor="password"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Password
-          </label>
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">Password</label>
           <div className="relative">
             <input
               id="password"
@@ -108,21 +94,15 @@ export default function RegisterForm() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-label="Mostrar u ocultar contraseña"
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
-        {/* Confirmar contraseña */}
         <div>
-          <label
-            htmlFor="confirmPassword"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Confirm Password
-          </label>
+          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-slate-700">Confirm Password</label>
           <input
             id="confirmPassword"
             type={showPassword ? "text" : "password"}
@@ -134,7 +114,6 @@ export default function RegisterForm() {
           />
         </div>
 
-        {/* Aceptar términos */}
         <label className="flex items-start gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
@@ -146,28 +125,24 @@ export default function RegisterForm() {
             I agree to the{" "}
             <a href="/terms" className="text-primary hover:underline">Terms of Service</a>{" "}
             and{" "}
-            <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
-            .
+            <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
           </span>
         </label>
 
-        {/* Mensaje de error */}
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        {/* Botón de submit */}
         <button
           type="submit"
-          className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-60"
         >
-          Create account
+          {isSubmitting ? "Creating account..." : "Create account"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Already have an account?{" "}
-        <a href="/login" className="font-medium text-primary hover:underline">
-          Log In
-        </a>
+        <a href="/login" className="font-medium text-primary hover:underline">Log In</a>
       </p>
     </div>
   );

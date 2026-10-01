@@ -5,7 +5,8 @@ import Papa from "papaparse";
 import { UploadCloud, CheckCircle2, XCircle } from "lucide-react";
 import { useTransactions, TransactionRecord } from "@/shared/context/TransactionsContext";
 
-const REQUIRED_HEADERS = ["fecha", "tipo", "categoria", "monto", "descripcion"];
+const REQUIRED_HEADERS = ["date", "type", "category", "amount", "description"];
+const TYPE_MAP: Record<string, TransactionRecord["tipo"]> = { INCOME: "INGRESO", EXPENSE: "GASTO" };
 const MAX_SIZE_MB = 10;
 
 type UploadStatus = "idle" | "validating" | "success" | "error";
@@ -61,17 +62,17 @@ export default function CsvDropzone() {
 
         const records: TransactionRecord[] = [];
         for (const row of results.data) {
-          const monto = parseFloat(row["monto"]);
-          const tipo = row["tipo"]?.toUpperCase();
-          if (isNaN(monto) || (tipo !== "INGRESO" && tipo !== "GASTO")) {
-            continue; // fila inválida: en el backend real esto generaría un error 400 por fila
+          const monto = parseFloat(row["amount"]);
+          const tipo = TYPE_MAP[row["type"]?.trim().toUpperCase()];
+          if (isNaN(monto) || !tipo) {
+            continue;
           }
           records.push({
-            fecha: row["fecha"],
-            tipo: tipo as "INGRESO" | "GASTO",
-            categoria: row["categoria"],
+            fecha: row["date"],
+            tipo,
+            categoria: row["category"],
             monto,
-            descripcion: row["descripcion"] ?? "",
+            descripcion: row["description"] ?? "",
           });
         }
 

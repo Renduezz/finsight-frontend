@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, Bell } from "lucide-react";
-
-const MOCK_COMPANIES = ["Acme Corp", "Beta SAS", "Comercial del Valle"];
+import { useCompany } from "@/shared/context/CompanyContext";
 
 export default function Header() {
-  const [activeCompany, setActiveCompany] = useState(MOCK_COMPANIES[0]);
+  const { companies, activeCompany, setActiveCompanyId } = useCompany();
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
@@ -23,12 +22,13 @@ export default function Header() {
         </div>
 
         <select
-          value={activeCompany}
-          onChange={(e) => setActiveCompany(e.target.value)}
+          value={activeCompany?.id ?? ""}
+          onChange={(e) => setActiveCompanyId(Number(e.target.value))}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:border-primary"
         >
-          {MOCK_COMPANIES.map((company) => (
-            <option key={company} value={company}>{company}</option>
+          {companies.length === 0 && <option value="">No companies</option>}
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>{company.name}</option>
           ))}
         </select>
       </div>
@@ -47,7 +47,7 @@ export default function Header() {
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">JD</span>
             <span className="hidden text-left text-sm sm:block">
               <span className="block font-medium text-slate-700">Jane Doe</span>
-              <span className="block text-xs text-slate-400">CFO, {activeCompany}</span>
+              <span className="block text-xs text-slate-400">{activeCompany?.sector ?? "—"}</span>
             </span>
           </button>
 
